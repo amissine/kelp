@@ -1,6 +1,6 @@
 package cmd
 
-import (
+import ( // {{{1
 	"database/sql"
 	"fmt"
 	"io"
@@ -29,6 +29,7 @@ import (
 	"github.com/stellar/kelp/trader"
 )
 
+// Locals {{{1
 const tradeExamples = `  kelp trade --botConf ./path/trader.cfg --strategy buysell --stratConf ./path/buysell.cfg
   kelp trade --botConf ./path/trader.cfg --strategy buysell --stratConf ./path/buysell.cfg --sim`
 
@@ -38,30 +39,6 @@ var tradeCmd = &cobra.Command{
 	Use:     "trade",
 	Short:   "Trades against the Stellar universal marketplace using the specified strategy",
 	Example: tradeExamples,
-}
-
-func requiredFlag(flag string) {
-	e := tradeCmd.MarkFlagRequired(flag)
-	if e != nil {
-		panic(e)
-	}
-}
-
-func hiddenFlag(flag string) {
-	e := tradeCmd.Flags().MarkHidden(flag)
-	if e != nil {
-		panic(e)
-	}
-}
-
-func logPanic(l logger.Logger, fatalOnError bool) {
-	if r := recover(); r != nil {
-		st := debug.Stack()
-		l.Errorf("PANIC!! recovered to log it in the file\npanic: %v\n\n%s\n", r, string(st))
-		if fatalOnError {
-			logger.Fatal(l, fmt.Errorf("PANIC!! recovered to log it in the file\npanic: %v\n\n%s\n", r, string(st)))
-		}
-	}
 }
 
 type inputs struct {
@@ -77,7 +54,41 @@ type inputs struct {
 	ui                            *bool
 }
 
-func validateCliParams(l logger.Logger, options inputs) {
+func requiredFlag( // {{{1
+	flag string,
+) {
+	e := tradeCmd.MarkFlagRequired(flag)
+	if e != nil {
+		panic(e)
+	}
+}
+
+func hiddenFlag( // {{{1
+	flag string,
+) {
+	e := tradeCmd.Flags().MarkHidden(flag)
+	if e != nil {
+		panic(e)
+	}
+}
+
+func logPanic( // {{{1
+	l logger.Logger,
+	fatalOnError bool,
+) {
+	if r := recover(); r != nil {
+		st := debug.Stack()
+		l.Errorf("PANIC!! recovered to log it in the file\npanic: %v\n\n%s\n", r, string(st))
+		if fatalOnError {
+			logger.Fatal(l, fmt.Errorf("PANIC!! recovered to log it in the file\npanic: %v\n\n%s\n", r, string(st)))
+		}
+	}
+}
+
+func validateCliParams( // {{{1
+	l logger.Logger,
+	options inputs,
+) {
 	checkInitRootFlags()
 
 	if *options.operationalBuffer < 0 {
@@ -96,7 +107,10 @@ func validateCliParams(l logger.Logger, options inputs) {
 	}
 }
 
-func validateBotConfig(l logger.Logger, botConfig trader.BotConfig) {
+func validateBotConfig( // {{{1
+	l logger.Logger,
+	botConfig trader.BotConfig,
+) {
 	if botConfig.IsTradingSdex() && botConfig.Fee == nil {
 		logger.Fatal(l, fmt.Errorf("The `FEE` object needs to exist in the trader config file when trading on SDEX"))
 	}
@@ -111,13 +125,18 @@ func validateBotConfig(l logger.Logger, botConfig trader.BotConfig) {
 	validatePrecisionConfig(l, botConfig.IsTradingSdex(), botConfig.CentralizedPricePrecisionOverride, "CENTRALIZED_PRICE_PRECISION_OVERRIDE")
 }
 
-func validatePrecisionConfig(l logger.Logger, isTradingSdex bool, precisionField *int8, name string) {
+func validatePrecisionConfig( // {{{1
+	l logger.Logger,
+	isTradingSdex bool,
+	precisionField *int8,
+	name string,
+) {
 	if !isTradingSdex && precisionField != nil && *precisionField < 0 {
 		logger.Fatal(l, fmt.Errorf("need to specify non-negative %s config param in trader config file when not trading on SDEX", name))
 	}
 }
 
-func init() {
+func init() { // {{{1
 	options := inputs{}
 	// short flags
 	options.botConfigPath = tradeCmd.Flags().StringP("botConf", "c", "", "(required) trading bot's basic config file path")
@@ -144,7 +163,9 @@ func init() {
 	}
 }
 
-func makeStartupMessage(options inputs) string {
+func makeStartupMessage( // {{{1
+	options inputs,
+) string {
 	startupMessage := "Starting Kelp Trader: " + version + " [" + gitHash + "]"
 	if *options.simMode {
 		startupMessage += " (simulation mode)"
@@ -152,7 +173,11 @@ func makeStartupMessage(options inputs) string {
 	return startupMessage
 }
 
-func makeFeeFn(l logger.Logger, botConfig trader.BotConfig, newClient *horizonclient.Client) plugins.OpFeeStroops {
+func makeFeeFn( // {{{1
+	l logger.Logger,
+	botConfig trader.BotConfig,
+	newClient *horizonclient.Client,
+) plugins.OpFeeStroops {
 	if !botConfig.IsTradingSdex() {
 		return plugins.SdexFixedFeeFn(0)
 	}
@@ -169,7 +194,10 @@ func makeFeeFn(l logger.Logger, botConfig trader.BotConfig, newClient *horizoncl
 	return feeFn
 }
 
-func readBotConfig(l logger.Logger, options inputs) trader.BotConfig {
+func readBotConfig( // {{{1
+	l logger.Logger,
+	options inputs,
+) trader.BotConfig {
 	var botConfig trader.BotConfig
 	e := config.Read(*options.botConfigPath, &botConfig)
 	utils.CheckConfigError(botConfig, e, *options.botConfigPath)
@@ -194,7 +222,7 @@ func readBotConfig(l logger.Logger, options inputs) trader.BotConfig {
 	return botConfig
 }
 
-func makeExchangeShimSdex(
+func makeExchangeShimSdex( // {{{1
 	l logger.Logger,
 	botConfig trader.BotConfig,
 	options inputs,
@@ -287,7 +315,7 @@ func makeExchangeShimSdex(
 	return exchangeShim, sdex
 }
 
-func makeStrategy(
+func makeStrategy( // {{{1
 	l logger.Logger,
 	network string,
 	botConfig trader.BotConfig,
@@ -320,7 +348,7 @@ func makeStrategy(
 	return strategy
 }
 
-func makeBot(
+func makeBot( // {{{1
 	l logger.Logger,
 	botConfig trader.BotConfig,
 	client *horizonclient.Client,
@@ -411,7 +439,10 @@ func makeBot(
 	)
 }
 
-func convertDeprecatedBotConfigValues(l logger.Logger, botConfig trader.BotConfig) trader.BotConfig {
+func convertDeprecatedBotConfigValues(
+	l logger.Logger,
+	botConfig trader.BotConfig,
+) trader.BotConfig {
 	if botConfig.CentralizedMinBaseVolumeOverride != nil && botConfig.MinCentralizedBaseVolumeDeprecated != nil {
 		l.Infof("deprecation warning: cannot set both '%s' (deprecated) and '%s' in the trader config, using value from '%s'\n", "MIN_CENTRALIZED_BASE_VOLUME", "CENTRALIZED_MIN_BASE_VOLUME_OVERRIDE", "CENTRALIZED_MIN_BASE_VOLUME_OVERRIDE")
 	} else if botConfig.MinCentralizedBaseVolumeDeprecated != nil {
@@ -423,13 +454,13 @@ func convertDeprecatedBotConfigValues(l logger.Logger, botConfig trader.BotConfi
 	return botConfig
 }
 
-func runTradeCmd(options inputs) {
+func runTradeCmd(options inputs) { // {{{1
 	l := logger.MakeBasicLogger()
 	botConfig := readBotConfig(l, options)
 	botConfig = convertDeprecatedBotConfigValues(l, botConfig)
 	l.Infof("Trading %s:%s for %s:%s\n", botConfig.AssetCodeA, botConfig.IssuerA, botConfig.AssetCodeB, botConfig.IssuerB)
 
-	// --- start initialization of objects ----
+	// --- start initialization of objects --- {{{2
 	threadTracker := multithreading.MakeThreadTracker()
 	assetBase := botConfig.AssetBase()
 	assetQuote := botConfig.AssetQuote()
@@ -535,7 +566,7 @@ func runTradeCmd(options inputs) {
 		options,
 	)
 	// --- end initialization of objects ---
-	// --- start initialization of services ---
+	// --- start initialization of services --- {{{2
 	validateTrustlines(l, client, &botConfig)
 	if botConfig.MonitoringPort != 0 {
 		go func() {
@@ -563,13 +594,13 @@ func runTradeCmd(options inputs) {
 		db,
 		threadTracker,
 	)
-	// --- end initialization of services ---
+	// --- end initialization of services --- }}}2
 
 	l.Info("Starting the trader bot...")
 	bot.Start()
 }
 
-func startMonitoringServer(l logger.Logger, botConfig trader.BotConfig) error {
+func startMonitoringServer(l logger.Logger, botConfig trader.BotConfig) error { // {{{1
 	healthMetrics, e := monitoring.MakeMetricsRecorder(map[string]interface{}{"success": true})
 	if e != nil {
 		return fmt.Errorf("unable to make metrics recorder for the /health endpoint: %s", e)
@@ -609,7 +640,7 @@ func startMonitoringServer(l logger.Logger, botConfig trader.BotConfig) error {
 	return server.StartServer(botConfig.MonitoringPort, botConfig.MonitoringTLSCert, botConfig.MonitoringTLSKey)
 }
 
-func startFillTracking(
+func startFillTracking( // {{{1
 	l logger.Logger,
 	strategy api.Strategy,
 	botConfig trader.BotConfig,
@@ -668,7 +699,11 @@ func startFillTracking(
 	}
 }
 
-func validateTrustlines(l logger.Logger, client *horizonclient.Client, botConfig *trader.BotConfig) {
+func validateTrustlines( // {{{1
+	l logger.Logger,
+	client *horizonclient.Client,
+	botConfig *trader.BotConfig,
+) {
 	if !botConfig.IsTradingSdex() {
 		l.Info("no need to validate trustlines because we're not using SDEX as the trading exchange")
 		return
@@ -702,7 +737,7 @@ func validateTrustlines(l logger.Logger, client *horizonclient.Client, botConfig
 	l.Info("trustlines valid")
 }
 
-func deleteAllOffersAndExit(
+func deleteAllOffersAndExit( // {{{1
 	l logger.Logger,
 	botConfig trader.BotConfig,
 	client *horizonclient.Client,
@@ -753,7 +788,10 @@ func deleteAllOffersAndExit(
 	}
 }
 
-func setLogFile(l logger.Logger, filename string) {
+func setLogFile( // {{{1
+	l logger.Logger,
+	filename string,
+) {
 	f, e := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if e != nil {
 		logger.Fatal(l, fmt.Errorf("failed to set log file: %s", e))
@@ -767,7 +805,10 @@ func setLogFile(l logger.Logger, filename string) {
 	defer logPanic(l, false)
 }
 
-func makeLogFilename(logPrefix string, botConfig trader.BotConfig) string {
+func makeLogFilename( // {{{1
+	logPrefix string,
+	botConfig trader.BotConfig,
+) string {
 	t := time.Now().Format("20060102T150405MST")
 	if botConfig.IsTradingSdex() {
 		return fmt.Sprintf("%s_%s_%s_%s_%s_%s.log", logPrefix, botConfig.AssetCodeA, botConfig.IssuerA, botConfig.AssetCodeB, botConfig.IssuerB, t)
