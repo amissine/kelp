@@ -461,7 +461,7 @@ func runTradeCmd(options inputs) { // {{{1
 	l.Infof("Trading %s:%s for %s:%s\n", botConfig.AssetCodeA, botConfig.IssuerA, botConfig.AssetCodeB, botConfig.IssuerB)
 
 	// --- start initialization of objects --- {{{2
-	threadTracker := multithreading.MakeThreadTracker()
+	threadTracker := multithreading.MakeThreadTracker() // {{{3
 	assetBase := botConfig.AssetBase()
 	assetQuote := botConfig.AssetQuote()
 	tradingPair := &model.TradingPair{
@@ -469,7 +469,7 @@ func runTradeCmd(options inputs) { // {{{1
 		Quote: model.Asset(utils.Asset2CodeString(assetQuote)),
 	}
 
-	client := &horizonclient.Client{
+	client := &horizonclient.Client{ // {{{3
 		HorizonURL: botConfig.HorizonURL,
 		HTTP:       http.DefaultClient,
 	}
@@ -492,7 +492,7 @@ func runTradeCmd(options inputs) { // {{{1
 		}
 	}
 
-	if *rootCcxtRestURL == "" && botConfig.CcxtRestURL != nil {
+	if *rootCcxtRestURL == "" && botConfig.CcxtRestURL != nil { // {{{3
 		e := sdk.SetBaseURL(*botConfig.CcxtRestURL)
 		if e != nil {
 			logger.Fatal(l, fmt.Errorf("unable to set CCXT-rest URL to '%s': %s", *botConfig.CcxtRestURL, e))
@@ -511,7 +511,7 @@ func runTradeCmd(options inputs) { // {{{1
 		assetDisplayFn = model.MakeSdexMappedAssetDisplayFn(sdexAssetMap)
 	}
 
-	var db *sql.DB
+	var db *sql.DB // {{{3
 	if botConfig.PostgresDbConfig != nil {
 		if botConfig.FillTrackerSleepMillis == 0 {
 			log.Println()
@@ -526,7 +526,7 @@ func runTradeCmd(options inputs) { // {{{1
 		}
 		log.Printf("made db instance with config: %s\n", botConfig.PostgresDbConfig.MakeConnectString())
 	}
-	exchangeShim, sdex := makeExchangeShimSdex(
+	exchangeShim, sdex := makeExchangeShimSdex( // {{{3
 		l,
 		botConfig,
 		options,
@@ -564,10 +564,10 @@ func runTradeCmd(options inputs) { // {{{1
 		assetDisplayFn,
 		threadTracker,
 		options,
-	)
+	) // }}}3
 	// --- end initialization of objects ---
 	// --- start initialization of services --- {{{2
-	validateTrustlines(l, client, &botConfig)
+	validateTrustlines(l, client, &botConfig) // {{{3
 	if botConfig.MonitoringPort != 0 {
 		go func() {
 			e := startMonitoringServer(l, botConfig)
@@ -582,7 +582,7 @@ func runTradeCmd(options inputs) { // {{{1
 			}
 		}()
 	}
-	startFillTracking(
+	startFillTracking( // {{{3
 		l,
 		strategy,
 		botConfig,
@@ -593,7 +593,7 @@ func runTradeCmd(options inputs) { // {{{1
 		assetDisplayFn,
 		db,
 		threadTracker,
-	)
+	) // }}}3
 	// --- end initialization of services --- }}}2
 
 	l.Info("Starting the trader bot...")

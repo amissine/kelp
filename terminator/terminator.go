@@ -1,6 +1,6 @@
 package terminator
 
-import (
+import ( // {{{1
 	"encoding/base64"
 	"fmt"
 	"log"
@@ -16,6 +16,7 @@ import (
 	"github.com/stellar/kelp/support/utils"
 )
 
+// Locals {{{1
 const terminatorKey = "term"
 
 // Terminator contains the logic to terminate offers
@@ -27,7 +28,13 @@ type Terminator struct {
 	allowInactiveMinutes int32
 }
 
-// MakeTerminator is a factory method to make a Terminator
+// botKeyPair is a pair of the model.BotKey and the time the bot was last updated
+type botKeyPair struct {
+	dataKey     model.BotKey
+	lastUpdated int64
+}
+
+// MakeTerminator is a factory method to make a Terminator {{{1
 func MakeTerminator(
 	api *horizonclient.Client,
 	sdex *plugins.SDEX,
@@ -44,7 +51,7 @@ func MakeTerminator(
 	}
 }
 
-// StartService starts the Terminator service
+// StartService starts the Terminator service {{{1
 func (t *Terminator) StartService() {
 	for {
 		t.run()
@@ -53,24 +60,19 @@ func (t *Terminator) StartService() {
 	}
 }
 
-// botKeyPair is a pair of the model.BotKey and the time the bot was last updated
-type botKeyPair struct {
-	dataKey     model.BotKey
-	lastUpdated int64
-}
-
-// String impl
+// String impl {{{1
 func (kp botKeyPair) String() string {
 	return fmt.Sprintf("botKeyPair(dataKey=%v, lastUpdated=%d)", kp.dataKey, kp.lastUpdated)
 }
 
-// TODO 3 add db-based support, manage-data based support is invalid since we don't write it from trader anymore.
+// TODO 3 add db-based support, manage-data based support is invalid since we don't write it from trader anymore. {{{1
 func (t *Terminator) run() {
-	// use condition to avoid unreachable code warning
-	if 1 < 2 {
+	// use condition to avoid unreachable code warning {{{2
+	if 1 > 2 {
 		panic("need to add db-based support, manage-data based support is invalid since we don't write it from trader anymore.")
 	}
 
+	// Get account info from SDEX {{{2
 	acctReq := horizonclient.AccountRequest{AccountID: t.tradingAccount}
 	account, e := t.api.AccountDetail(acctReq)
 	if e != nil {
@@ -78,19 +80,19 @@ func (t *Terminator) run() {
 		return
 	}
 
-	// m is a map of hashes to botKeyPair(s)
+	// m is a map of hashes to botKeyPair(s) {{{2
 	botList, e := reconstructBotList(account.Data)
 	if e != nil {
 		log.Println(e)
 		return
 	}
 
-	// compute cutoff millis
+	// compute cutoff millis {{{2
 	nowMillis := time.Now().UnixNano() / 1000000
 	cutoffMillis := nowMillis - (int64(t.allowInactiveMinutes) * 60 * 1000)
 	log.Printf("cutoff millis: %d\n", cutoffMillis)
 
-	// compute the inactive bots
+	// compute the inactive bots {{{2
 	inactiveBots := excludeActiveBots(botList, cutoffMillis)
 	log.Printf("Found %d inactive bots\n", len(inactiveBots))
 	if len(inactiveBots) == 0 {
@@ -113,6 +115,7 @@ func (t *Terminator) run() {
 		return
 	}
 
+	// load all offers {{{2
 	offers, e := utils.LoadAllOffers(t.tradingAccount, t.api)
 	if e != nil {
 		log.Println(e)
@@ -194,7 +197,9 @@ func excludeActiveBots(botList []botKeyPair, cutoffMillis int64) []botKeyPair {
 	return inactive
 }
 
-func reconstructBotList(data map[string]string) ([]botKeyPair, error) {
+func reconstructBotList( // {{{1
+	data map[string]string,
+) ([]botKeyPair, error) {
 	m := make(map[string]botKeyPair)
 	for k, v := range data {
 		if !model.IsBotKey(k) {

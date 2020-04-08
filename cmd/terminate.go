@@ -1,6 +1,6 @@
 package cmd
 
-import (
+import ( // {{{1
 	"log"
 	"net/http"
 
@@ -15,16 +15,20 @@ import (
 	"github.com/stellar/kelp/terminator"
 )
 
+// Locals {{{1
 var terminateCmd = &cobra.Command{
 	Hidden: true,
 	Use:    "terminate",
 	Short:  "Monitors a Stellar Account and terminates offers across all inactive bots",
 }
 
-func init() {
+func init() { // {{{1
 	configPath := terminateCmd.Flags().StringP("conf", "c", "./terminator.cfg", "service's basic config file path")
 
-	terminateCmd.Run = func(ccmd *cobra.Command, args []string) {
+	terminateCmd.Run = func( // {{{2
+		ccmd *cobra.Command,
+		args []string,
+	) {
 		log.Println("Starting Terminator: " + version + " [" + gitHash + "]")
 
 		var configFile terminator.Config
@@ -68,5 +72,5 @@ func init() {
 			terminator.StartService()
 			log.Println("Restarting terminator service")
 		}
-	}
+	} // }}}2
 }

@@ -14,8 +14,8 @@ type Config struct {
 	TickIntervalSeconds  int32  `valid:"-" toml:"TICK_INTERVAL_SECONDS"`
 	HorizonURL           string `valid:"-" toml:"HORIZON_URL"`
 
-	TradingAccount *string
-	SourceAccount  *string // can be nil
+	TradingAccount *string `valid:"-"`
+	SourceAccount  *string `valid:"-"` // can be nil
 }
 
 // String impl.
